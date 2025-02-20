@@ -158,6 +158,12 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
+                          <configuration>
+                            <nexusUrl>https://m2.unidevel.cn</nexusUrl>
+                            <serverId>ossrh</serverId>
+                            <repository>releases</repository>
+                            <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
