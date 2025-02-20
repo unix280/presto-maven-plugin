@@ -1,0 +1,79 @@
+name: Maven Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.PRESTODB_CI_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "ci@list.prestodb.io"
+          git config --global user.name "prestodb-ci"
+
+      - name: Setup GPG Keys
+        env:
+          GPG_SECRET: "${{ secrets.GPG_SECRET }}"
+          GPG_TRUST: "${{ secrets.GPG_TRUST }}"
+          GPG_PASSPHRASE: "${{ secrets.GPG_PASSPHRASE }}"
+        run: |
+          export GPG_TTY=$TTY
+          echo "$GPG_SECRET" | base64 --decode | gpg --batch --import
+          echo "$GPG_TRUST" | gpg --import-ownertrust
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          printenv | sort
+
+      - name: Determine Current Version
+        id: version
+        run: |
+          CURRENT_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -ntp -DforceStdout)
+          echo "current version: $CURRENT_VERSION"
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
+      - name: Prepare Release
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          mvn release:prepare -B \
+            -DautoVersionSubmodules=true \
+            -DgenerateBackupPoms=false \
+            -Dgpg.passphrase=$GPG_PASSPHRASE \
+            -Ptakari-release
+          git branch
+          git log --pretty="format:%ce: %s" -8
+          SCM_TAG=$(cat release.properties | grep scm.tag=)
+          echo ${SCM_TAG#*=} > repo-release-tag.txt
+          RELEASE_TAG=$(grep scm.tag= release.properties | cut -d'=' -f2)
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$RELEASE_TAG"
+
+      - name: Push Release to GitHub
+        run: |
+          git switch -c master
+          git push --follow-tags origin master
+
+      - name: Release Maven Artifacts
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          SONATYPE_NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          SONATYPE_NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          git checkout $RELEASE_TAG
+          mvn -s settings.xml -V -B -U -e -T2C deploy \
+            -DautoReleaseAfterClose=true \
+            -Dgpg.passphrase="$GPG_PASSPHRASE" \
+            -DkeepStagingRepositoryOnCloseRuleFailure=true \
+            -DkeepStagingRepositoryOnFailure=true \
+            -DskipTests \
+            -Ptakari-release \
+            -Pdeploy-to-ossrh \
+            -DstagingProgressTimeoutMinutes=10
