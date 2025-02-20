@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup:
+  release:
     runs-on: ubuntu-latest
     environment: release
     steps:
@@ -21,10 +21,10 @@ jobs:
           ref: master
           show-progress: false
 
-      - name: Set up JDK
+      - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
+          java-version: '11'
           distribution: 'temurin'
           server-id: ossrh
           server-username: "${{ secrets.NEXUS_USERNAME }}"
@@ -61,14 +61,7 @@ jobs:
           echo ${SCM_TAG#*=} > repo-release-tag.txt
           RELEASE_TAG=$(grep scm.tag= release.properties | cut -d'=' -f2)
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
-          echo 
-          cat repo-release-tag.txt
           echo "RELEASE_TAG=$RELEASE_TAG"
-
-      - name: Push Release to GitHub
-        run: |
-          git switch -c master
-          git push --follow-tags origin master
 
       - name: Release Maven Artifacts
         env:
@@ -76,7 +69,11 @@ jobs:
           SONATYPE_NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           SONATYPE_NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-          git checkout $RELEASE_TAG
+          git checkout "${{ env.RELEASE_TAG }}"
+          git status
+          git branch
+          git log --pretty="format:%ce: %s" -8
+          head -n 18 pom.xml
           mvn -s settings.xml -V -B -U -e -T2C deploy \
             -DautoReleaseAfterClose=true \
             -Dgpg.passphrase="$GPG_PASSPHRASE" \
@@ -86,3 +83,11 @@ jobs:
             -Ptakari-release \
             -Pdeploy-to-ossrh \
             -DstagingProgressTimeoutMinutes=10
+
+      - name: Push release tag to gitHub
+        run: |
+          git switch -c master
+          git branch
+          git --no-pager log --since="60 days ago" --graph --pretty=format:'%C(auto)%h%d%Creset %C(cyan)(%cd)%Creset %C(green)%cn <%ce>%Creset %s'
+          head -n 18 pom.xml
+          git push --follow-tags origin master
