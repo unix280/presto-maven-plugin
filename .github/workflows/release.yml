@@ -26,25 +26,18 @@ jobs:
         with:
           java-version: '11'
           distribution: 'temurin'
-
+          server-id: ossrh
+          server-username: "${{ secrets.NEXUS_USERNAME }}"
+          server-password: "${{ secrets.NEXUS_PASSWORD }}"
+          gpg-private-key: "${{ secrets.GPG_SECRET }}"
+          gpg-passphrase: "${{ secrets.GPG_PASSPHRASE }}"
+  
       - name: Configure git
         run: |
           git config --global --add safe.directory ${{github.workspace}}
           git config --global user.email "ci@lists.prestodb.io"
           git config --global user.name "prestodb-ci"
           git config pull.rebase false
-
-      - name: Setup GPG Keys
-        env:
-          GPG_SECRET: "${{ secrets.GPG_SECRET }}"
-          GPG_TRUST: "${{ secrets.GPG_TRUST }}"
-          GPG_PASSPHRASE: "${{ secrets.GPG_PASSPHRASE }}"
-        run: |
-          export GPG_TTY=$TTY
-          echo "$GPG_SECRET" | base64 --decode | gpg --batch --import
-          echo "$GPG_TRUST" | gpg --import-ownertrust
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          printenv | sort
 
       - name: Determine Current Version
         id: version
