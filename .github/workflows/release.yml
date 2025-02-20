@@ -86,7 +86,7 @@ jobs:
 
       - name: Push release tag to gitHub
         run: |
-          git switch -c master
+          git switch master
           git branch
           git --no-pager log --since="60 days ago" --graph --pretty=format:'%C(auto)%h%d%Creset %C(cyan)(%cd)%Creset %C(green)%cn <%ce>%Creset %s'
           head -n 18 pom.xml
