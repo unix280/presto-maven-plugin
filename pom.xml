@@ -118,17 +118,28 @@
         </resources>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>sonatype.releases</id>
+            <name>Releases Repository</name>
+            <url>https://m2.unidevel.cn/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>sonatype.snapshots</id>
+            <name>Snapshots Repository</name>
+            <url>https://m2.unidevel.cn/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <profiles>
         <profile>
             <id>takari-release</id>
             <build>
                 <plugins>
-                    <!-- oss requires a javadoc jar. Build one when releasing. -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                     </plugin>
-                    <!--  We want to sign the artifact, the POM, and all attached artifacts for oss upload  -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -156,14 +167,8 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                          <configuration>
-                            <nexusUrl>https://m2.unidevel.cn</nexusUrl>
-                            <serverId>ossrh</serverId>
-                            <repository>releases</repository>
-                            <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
-                        </configuration>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
