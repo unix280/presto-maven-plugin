@@ -61,6 +61,8 @@ jobs:
           echo ${SCM_TAG#*=} > repo-release-tag.txt
           RELEASE_TAG=$(grep scm.tag= release.properties | cut -d'=' -f2)
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo 
+          cat repo-release-tag.txt
           echo "RELEASE_TAG=$RELEASE_TAG"
 
       - name: Push Release to GitHub
