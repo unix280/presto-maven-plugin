@@ -1,0 +1,19 @@
+name: Mask base64 encoded secret
+
+on:
+  push:
+
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Base64 encode secret
+        id: encode
+        run: |
+          encoded=$(echo -n "${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }}" | base64)
+          echo "::add-mask::$encoded"   # <-- this masks the base64 string
+          echo "ENCODED=$encoded" >> $GITHUB_ENV
+          
+      - name: Use the encoded secret
+        run: |
+          echo "Encoded value is $ENCODED"
